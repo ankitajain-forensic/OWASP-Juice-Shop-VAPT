@@ -78,18 +78,6 @@ Recommended controls include:
 ## Evidence
 
 Evidence was collected during testing using Burp Suite.
-
-Screenshots should be added only after removing or masking:
-
-- Authentication tokens
-- Session identifiers
-- Cookies
-- Personal information
-- IP addresses where appropriate
-- Any other sensitive information
-
-**Evidence status:** To be added after sanitization.
-
 ---
 
 ## Environment
