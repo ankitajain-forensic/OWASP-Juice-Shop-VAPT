@@ -75,8 +75,8 @@ Recommended controls include:
 
 Screenshots below show the intercepted login request and response transmitted over HTTP, with credentials and token values visible. Sensitive values have been redacted prior to publishing.
 
-![Login request intercepted over HTTP showing plaintext credentials](images/a04-01-request-http-login.png)`
-`![Login response over HTTP showing authentication token](images/a04-02-response-http-token.png)`
+![Login request intercepted over HTTP showing plaintext credentials](images/a04-01-request-http-login.jpg)`
+`![Login response over HTTP showing authentication token](images/a04-02-response-http-token.jpg)`
 
 ---
 
