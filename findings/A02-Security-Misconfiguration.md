@@ -69,9 +69,8 @@ Recommended controls include:
 ## Evidence
 
 Screenshots below show the request to the configuration endpoint and the response containing the exposed security-question data. Sensitive values have been redacted prior to publishing.
-findings/images/a02-01-request-config-endpoint.jpg
-findings/images/a02-02-response-exposed-config-data.jpg.jpg
 
+findings/images/a02-01-request-config-endpoint.jpg
 
 ---
 
