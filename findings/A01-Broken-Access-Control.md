@@ -77,7 +77,12 @@ Recommended controls include:
 
 ## Evidence
 
-Evidence was collected during testing using Burp Suite.
+Screenshots below show the intercepted request with the modified basket identifier and the resulting response containing another user's basket data. Sensitive values (session tokens, cookies) have been redacted prior to publishing.
+
+*[Add screenshots here, e.g.:]*
+`![Burp Suite request showing modified basket ID](../images/a01-request.png)`
+`![Response returning another user's basket data](../images/a01-response.png)`
+
 ---
 
 ## Environment
