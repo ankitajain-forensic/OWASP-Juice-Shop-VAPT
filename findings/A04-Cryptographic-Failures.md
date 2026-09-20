@@ -2,61 +2,60 @@
 
 ## Finding
 
-**Vulnerability:** Sensitive Authentication Data Transmitted over HTTP
+**Vulnerability:** Authentication Data Transmitted over Unencrypted HTTP
 
 **Status:** Confirmed
 
 **Severity:** Medium
 
-**Affected Functionality:** User authentication / Login
+**Affected Functionality:** User Authentication / Login
+
+**Endpoint:** `POST /rest/user/login`
 
 ---
 
 ## Description
 
-The application was observed transmitting sensitive authentication-related data over unencrypted HTTP.
+Cryptographic Failures occur when an application fails to adequately protect sensitive data in transit or at rest, commonly through the absence of encryption, use of weak cryptographic protocols, or misconfigured transport security.
 
-During testing, the login process was examined using Burp Suite. The application was operating over HTTP rather than HTTPS, meaning sensitive information transmitted between the client and application was not protected by transport-layer encryption.
-
----
-
-## Testing Methodology
-
-1. The application's login functionality was identified.
-2. Login requests were intercepted using Burp Suite.
-3. The request and response traffic was examined.
-4. The protocol used for communication was reviewed.
-5. Sensitive authentication-related information transmitted during the login process was assessed for transport protection.
+During testing, requests to the application's login functionality were observed being transmitted over plain HTTP rather than HTTPS/TLS. As a result, authentication credentials and session-related data were transmitted without encryption.
 
 ---
 
-## Observed Result
+## Testing Procedure
 
-Authentication-related data was transmitted over HTTP without TLS encryption.
+1. The login functionality of OWASP Juice Shop was identified during application testing.
+2. Login requests were intercepted using Burp Suite to inspect the transport-layer configuration of the request.
+3. The protocol used for the request (HTTP vs. HTTPS) was recorded.
+4. The request and response were examined to confirm whether credentials and authentication tokens were visible in plaintext.
 
-The testing environment used the local address `127.0.0.1`.
+---
 
-Therefore, the assessment demonstrated the use of unencrypted HTTP in the laboratory environment but did not demonstrate exploitation over an external network.
+## Observation
+
+The login request was observed being sent over HTTP, with the username/email and password values visible in plaintext within the intercepted request body. The corresponding response, containing the authentication token, was likewise unencrypted in transit.
+
+The assessment was performed against the application running on `127.0.0.1` in the local laboratory environment, so exploitation of this weakness across an external network (e.g., via network sniffing or a man-in-the-middle position) was not practically demonstrated, though the absence of TLS on the login endpoint was directly confirmed.
 
 ---
 
 ## Security Impact
 
-If sensitive authentication information is transmitted without encryption over an untrusted network, an attacker positioned to intercept network traffic may potentially obtain or manipulate the transmitted information.
+Transmitting authentication data over an unencrypted channel exposes credentials and session tokens to interception by any party with access to the network path between client and server.
 
-Potential impacts include:
+Depending on the network position of an attacker, this weakness could lead to:
 
-- Exposure of authentication information
-- Session compromise
-- Credential interception
-- Increased risk of man-in-the-middle attacks
-- Loss of confidentiality during transmission
+- Credential theft via network interception
+- Session hijacking through captured authentication tokens
+- Full account compromise if intercepted credentials are reused
+
+The practical severity is influenced by deployment context — this weakness carries substantially higher real-world risk when the application is exposed on an untrusted or shared network rather than a local loopback address.
 
 ---
 
 ## Root Cause
 
-The application was configured to use HTTP for authentication-related communication rather than enforcing HTTPS with appropriate TLS protection.
+The application did not enforce HTTPS/TLS for authentication-related traffic, allowing the login request and response to be transmitted without encryption.
 
 ---
 
@@ -64,24 +63,20 @@ The application was configured to use HTTP for authentication-related communicat
 
 Recommended controls include:
 
-1. Enforce HTTPS for all application traffic.
-2. Configure TLS correctly and use a trusted certificate.
-3. Redirect HTTP requests to HTTPS where appropriate.
-4. Prevent sensitive information from being transmitted over unencrypted connections.
-5. Configure secure cookie attributes such as `Secure` where applicable.
-6. Ensure authentication endpoints are accessible only through encrypted communication.
+1. Enable HTTPS/TLS for all application communication, with particular priority on authentication and session-related endpoints.
+2. Redirect all HTTP requests to HTTPS at the server or load-balancer level.
+3. Enforce HTTP Strict Transport Security (HSTS) to prevent protocol downgrade.
+4. Ensure authentication tokens and session cookies are only transmitted over secure channels (`Secure` cookie flag).
+5. Regularly audit application endpoints to confirm no sensitive functionality is reachable over unencrypted HTTP.
 
 ---
 
 ## Evidence
 
-Evidence was collected during testing using Burp Suite.
+Screenshots below show the intercepted login request and response transmitted over HTTP, with credentials and token values visible. Sensitive values have been redacted prior to publishing.
 
-Screenshots should be sanitized before publication.
-
-Sensitive information such as credentials, authentication tokens, session identifiers, cookies, and personal information must be removed or masked.
-
-**Evidence status:** To be added after sanitization.
+![Login request intercepted over HTTP showing plaintext credentials](images/a04-01-request-http-login.png)`
+`![Login response over HTTP showing authentication token](images/a04-02-response-http-token.png)`
 
 ---
 
