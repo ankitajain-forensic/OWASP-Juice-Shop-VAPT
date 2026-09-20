@@ -77,7 +77,7 @@ Recommended controls include:
 Screenshots below show the crafted SQL injection payload submitted in the login request and the resulting response confirming successful authentication bypass. Sensitive values have been redacted prior to publishing.
 
 
-![Login request with SQL injection payload in the email field](images/a05-01-request-sqli-payload.jpg)`
+![Login request with SQL injection payload in the email field](images/a05-01-request-sql-payload.jpg)`
 `![Response confirming successful authentication bypass](images/a05-02-response-auth-bypass.jpg)`
 
 ---
