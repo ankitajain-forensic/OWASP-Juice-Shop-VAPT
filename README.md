@@ -42,6 +42,7 @@ The assessment included vulnerabilities and security weaknesses related to:
 - Software or Data Integrity Failures
 - Software Supply Chain Failures
 - Security Logging and Alerting Failures
+- Mishandling of Exceptional Conditions
 
 ## Tools Used
 
