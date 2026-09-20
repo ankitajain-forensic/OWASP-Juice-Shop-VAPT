@@ -2,71 +2,61 @@
 
 ## Finding
 
-**Vulnerability:** Vulnerable Third-Party Dependencies
+**Vulnerability:** Vulnerable Third-Party Software Dependencies
 
 **Status:** Confirmed
 
 **Severity:** High
 
-**Affected Component:** Application dependencies
+**Affected Functionality:** Application dependencies and externally sourced software components
 
 ---
 
 ## Description
 
-A dependency assessment of the OWASP Juice Shop environment identified third-party software components with known security vulnerabilities.
+The application was found to rely on multiple third-party dependencies containing publicly known vulnerabilities.
 
-The dependency assessment identified vulnerabilities associated with installed package versions, demonstrating the security risk that can arise from using vulnerable third-party components within an application environment.
+A dependency vulnerability scan was performed against the application's package dependencies, identifying several outdated or vulnerable libraries, including `uuid` and `ws`, for which fixed versions are publicly available.
+
+Reliance on vulnerable third-party components introduces security weaknesses into the application that are outside the application's own codebase but still directly affect its overall security posture.
 
 ---
 
 ## Testing Methodology
 
-1. The application environment and its dependencies were assessed.
-2. Installed package versions were identified.
-3. Dependency information was compared against known vulnerability information using vulnerability scanning.
-4. Identified vulnerable components and their associated CVEs were documented.
-5. The potential security impact of the vulnerable dependencies was assessed.
+1. The application's dependency manifest was reviewed to identify third-party libraries in use.
+2. A dependency vulnerability scan was performed against the application's installed packages.
+3. Scan results were reviewed to identify known vulnerabilities (CVEs) affecting the installed dependency versions.
+4. Each flagged dependency was cross-referenced against its corresponding security advisory to confirm the vulnerability and identify the fixed version.
 
 ---
 
 ## Observed Result
 
-The assessment identified vulnerabilities affecting third-party components.
+The scan reported 30 vulnerabilities across the application's dependencies: 13 low, 16 medium, and 1 high severity.
 
-The report identified:
+Affected packages included `uuid` and `ws`, both of which had publicly documented security advisories and available fixed versions.
 
-- **CVE-2026-41907** affecting `libssl3t64`
-- **CVE-2024-37890** affecting `libc6`
-
-The installed versions identified during the assessment were:
-
-| Component | Installed Version | Associated CVE |
-|---|---:|---|
-| `libssl3t64` | 8.3.2 | CVE-2026-41907 |
-| `libc6` | 7.4.6 | CVE-2024-37890 |
-
-Newer fixed versions were identified by the vulnerability assessment process.
+This confirmed that the application was running dependency versions with known, unpatched security issues.
 
 ---
 
 ## Security Impact
 
-Vulnerable third-party components can introduce security weaknesses into an otherwise secure application.
+Vulnerable third-party dependencies can introduce exploitable weaknesses into the application environment even when the application's own code is otherwise secure.
 
-Depending on the vulnerability, exploitation may result in:
+Depending on the specific vulnerability, impact can include:
 
-- Unauthorized access
-- Information disclosure
-- Application compromise
-- Increased attack surface
-- Compromise through a vulnerable dependency rather than directly through application code
+- Remote code execution or denial of service via a vulnerable library
+- Exposure of the application to publicly documented exploits
+- Increased attack surface inherited from unmaintained or outdated packages
+- Compounding risk when vulnerable dependencies are used in security-sensitive functionality
 
 ---
 
 ## Root Cause
 
-The identified software components contained known vulnerabilities that had not been sufficiently addressed through dependency management and update processes.
+The application was deployed with outdated dependency versions that had not been updated to incorporate available security patches, and no dependency vulnerability monitoring process was evident.
 
 ---
 
@@ -74,23 +64,20 @@ The identified software components contained known vulnerabilities that had not 
 
 Recommended controls include:
 
-1. Maintain an inventory of application dependencies.
-2. Regularly scan dependencies for known vulnerabilities.
-3. Update vulnerable packages to appropriate fixed versions.
-4. Remove unnecessary dependencies.
-5. Monitor security advisories and CVE databases.
-6. Integrate dependency scanning into the software development lifecycle.
-7. Establish a process for timely security updates and patch management.
+1. Update vulnerable dependencies such as `uuid` and `ws` to secure versions that contain the relevant security fixes.
+2. Establish a routine dependency vulnerability scanning process (e.g., `npm audit`, Snyk, or equivalent) as part of the development workflow.
+3. Monitor security advisories for all third-party packages in active use.
+4. Adopt a patch-management policy defining acceptable timeframes for remediating dependencies by severity.
+5. Where feasible, minimize the number of third-party dependencies to reduce overall supply-chain attack surface.
 
 ---
 
 ## Evidence
 
-Dependency and vulnerability assessment results were collected during the assessment.
+Screenshots below show the dependency vulnerability scan results, including the identified vulnerable packages and their associated severity ratings. Sensitive values have been redacted prior to publishing.
 
-Any screenshots or exported scanner results should be reviewed and sanitized before public publication.
-
-**Evidence status:** To be added after sanitization.
+![Dependency scan results showing vulnerable packages](images/a03-01-scan-results-overview.jpg)`
+`![Security advisory detail for a flagged dependency](images/a03-02-advisory-detail.jpg)`
 
 ---
 
@@ -100,7 +87,7 @@ Any screenshots or exported scanner results should be reviewed and sanitized bef
 
 **Testing Environment:** Local authorized laboratory environment
 
-**Tools:** Kali Linux, vulnerability assessment tools
+**Tools:** Kali Linux, npm audit / dependency scanner, Burp Suite
 
 **Assessment Type:** Web Application Vulnerability Assessment
 
