@@ -30,18 +30,18 @@ This finding is also connected to the **A02:2025 Security Misconfiguration** fin
 2. The email address `admin@juice-sh.op` was submitted to retrieve the associated security question.
 3. An incorrect answer was submitted to the displayed security question.
 
-   ![Browser view showing "Wrong answer to security question" error on the Forgot Password page](images/a06-01-wrong-answer-error.jpeg)
+   ![Browser view showing "Wrong answer to security question" error on the Forgot Password page](images/a06-01-wrong-answer-error.jpg)
    *Figure: Browser view showing "Wrong answer to security question" error on the Forgot Password page.*
 
 4. The request and response were captured and inspected using Burp Suite.
 5. The incorrect-answer submission was repeated multiple times in succession to observe the application's rate-limiting behavior, and the response headers were examined for any rate-limit indicators.
 
-   ![Burp Suite Repeater/HTTP history view showing the reset-password request and 401 response with X-RateLimit headers](images/a06-02-burp-ratelimit-headers.jpeg)
+   ![Burp Suite Repeater/HTTP history view showing the reset-password request and 401 response with X-RateLimit headers](images/a06-02-burp-ratelimit-headers.jpg)
    *Figure: Burp Suite Repeater/HTTP history view showing the `POST /rest/user/reset-password` request body (`"email":"admin@juice-sh.op"`, `"answer":"nqwndqwd"`...) and the 401 Unauthorized response with the `X-RateLimit-*` headers visible.*
 
 6. A second test account was used to complete the flow with the correct security-question answer, followed by submission of a new password.
 
-   ![Browser view showing "Your password was successfully changed" on the second test account](images/a06-03-password-reset-success.jpeg)
+   ![Browser view showing "Your password was successfully changed" on the second test account](images/a06-03-password-reset-success.jpg)
    *Figure: Browser view showing "Your password was successfully changed" on the second test account.*
 
 7. The application's response to the successful reset was recorded, and checked for any indication of an account-owner notification.
