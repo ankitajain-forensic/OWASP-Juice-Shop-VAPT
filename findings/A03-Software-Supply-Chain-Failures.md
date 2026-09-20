@@ -2,82 +2,85 @@
 
 ## Finding
 
-**Vulnerability:** Vulnerable Third-Party Software Dependencies
+**Vulnerability:** Known Vulnerabilities in Container Base Image Dependencies (OpenSSL, glibc)
 
 **Status:** Confirmed
 
 **Severity:** High
 
-**Affected Functionality:** Application dependencies and externally sourced software components
+**Affected Functionality:** Application dependencies and externally sourced software components (Docker base image)
+
+**Target Image:** `bkimminich/juice-shop:latest`
 
 ---
 
 ## Description
 
-The application was found to rely on multiple third-party dependencies containing publicly known vulnerabilities.
+Software Supply Chain Failures refer to security weaknesses introduced through the software components, libraries, packages, dependencies, container images, or other third-party resources used by an application, rather than through the application's own source code.
 
-A dependency vulnerability scan was performed against the application's package dependencies, identifying several outdated or vulnerable libraries, including `uuid` and `ws`, for which fixed versions are publicly available.
+The OWASP Juice Shop Docker image was scanned for known vulnerabilities in its underlying container base packages. The scan identified multiple vulnerable components, including outdated versions of `libssl3t64` (OpenSSL) and `libc6` (glibc), both of which are core system libraries inherited from the container's base OS layer rather than from the application's own `package.json` dependencies.
 
-Reliance on vulnerable third-party components introduces security weaknesses into the application that are outside the application's own codebase but still directly affect its overall security posture.
-
----
-
-## Testing Methodology
-
-1. The application's dependency manifest was reviewed to identify third-party libraries in use.
-2. A dependency vulnerability scan was performed against the application's installed packages.
-3. Scan results were reviewed to identify known vulnerabilities (CVEs) affecting the installed dependency versions.
-4. Each flagged dependency was cross-referenced against its corresponding security advisory to confirm the vulnerability and identify the fixed version.
+The presence of known vulnerabilities in these base-image packages demonstrates that software supply chain risk extends beyond application-level dependencies to the underlying container image itself.
 
 ---
 
-## Observed Result
+## Testing Procedure
 
-The scan reported 30 vulnerabilities across the application's dependencies: 13 low, 16 medium, and 1 high severity.
+1. The OWASP Juice Shop application was deployed using its Docker image (`bkimminich/juice-shop:latest`) in the controlled laboratory environment.
+2. A vulnerability scan was performed against the deployed Docker image to identify known vulnerabilities in its software components and base packages.
+3. Scan results were reviewed to identify vulnerable libraries, their installed versions, associated CVE identifiers, and severity ratings.
+4. Particular attention was given to core system libraries flagged with High or Medium severity findings.
+5. Results were recorded as evidence where a vulnerable installed version and corresponding fixed version were both identified.
 
-Affected packages included `uuid` and `ws`, both of which had publicly documented security advisories and available fixed versions.
+---
 
-This confirmed that the application was running dependency versions with known, unpatched security issues.
+## Observation
+
+The scan identified 30 vulnerabilities across the container's base packages, notably:
+
+- **`libssl3t64` (OpenSSL)**, installed version `3.5.0-1-deb13u2`:
+  - `CVE-2026-14458` (**High**) — Denial of Service via unbounded memory growth in the QUIC server when processing INITIAL packets. Fixed in `3.5.7-1-deb13u2`.
+  - `CVE-2026-18798` (Medium) — QUIC server may trigger a double free when processing an INITIAL packet.
+  - `CVE-2026-63072` (Medium) — Heap buffer overflow in CMS key unwrapping.
+  - `CVE-2026-63076` — Invalid pointer dereference in the CMP server via a crafted protocol message.
+  - `CVE-2026-14457` (Low) — RPK server signature algorithm selection with deference to a missing certificate.
+- **`libc6` (glibc)**: Multiple buffer-overflow and denial-of-service vulnerabilities, including `CVE-2026-18374`, `CVE-2026-19499`, and `CVE-2026-19542`.
+
+A fixed version of `libssl3t64` (`3.5.7-1-deb13u2`) was identified as available for the high-severity finding, confirming the installed version was outdated relative to the vendor's patched release.
 
 ---
 
 ## Security Impact
 
-Vulnerable third-party dependencies can introduce exploitable weaknesses into the application environment even when the application's own code is otherwise secure.
+The presence of vulnerable third-party dependencies can introduce security risk into the application even when the vulnerability exists in an externally developed library rather than the application's own code.
 
-Depending on the specific vulnerability, impact can include:
-
-- Remote code execution or denial of service via a vulnerable library
-- Exposure of the application to publicly documented exploits
-- Increased attack surface inherited from unmaintained or outdated packages
-- Compounding risk when vulnerable dependencies are used in security-sensitive functionality
+An attacker may potentially exploit a known vulnerability in an affected dependency if the vulnerable functionality is reachable in the application's environment. In this assessment, the high-severity `libssl3t64` finding (`CVE-2026-14458`), combined with multiple glibc-level vulnerabilities, indicates the deployed container environment requires dependency updates and ongoing monitoring, and could affect the confidentiality, integrity, or availability of the application depending on successful exploitation.
 
 ---
 
 ## Root Cause
 
-The application was deployed with outdated dependency versions that had not been updated to incorporate available security patches, and no dependency vulnerability monitoring process was evident.
+Inadequate management and monitoring of third-party software dependencies within the application's Docker base image. Vulnerable versions of core system libraries remained in the deployed image despite patched versions being publicly available, indicating that dependency security was not addressed as part of the image build/maintenance process.
 
 ---
 
 ## Remediation
 
-Recommended controls include:
-
-1. Update vulnerable dependencies such as `uuid` and `ws` to secure versions that contain the relevant security fixes.
-2. Establish a routine dependency vulnerability scanning process (e.g., `npm audit`, Snyk, or equivalent) as part of the development workflow.
-3. Monitor security advisories for all third-party packages in active use.
-4. Adopt a patch-management policy defining acceptable timeframes for remediating dependencies by severity.
-5. Where feasible, minimize the number of third-party dependencies to reduce overall supply-chain attack surface.
+1. Update the base image and vulnerable packages (`libssl3t64`, `libc6`) to their patched versions.
+2. Maintain an up-to-date dependency and base-image inventory to track all third-party components.
+3. Implement Software Composition Analysis (SCA) / container image scanning during build and deployment.
+4. Monitor security advisories and CVEs affecting third-party and base-image components.
+5. Establish a patching process that prioritizes remediation by severity and exploitability.
+6. Rebuild and redeploy the Docker image after updates, and perform a follow-up scan to verify remediation.
 
 ---
 
 ## Evidence
 
-Screenshots below show the dependency vulnerability scan results, including the identified vulnerable packages and their associated severity ratings. Sensitive values have been redacted prior to publishing.
+Screenshots below show the vulnerability scan results identifying `libssl3t64` (`CVE-2026-14458`, High) and `libc6` as vulnerable, with associated CVE IDs, severity, and fixed versions. Sensitive values have been redacted prior to publishing.
 
-![Dependency scan results showing vulnerable packages](images/a03-01-scan-results-overview.jpg)`
-`![Security advisory detail for a flagged dependency](images/a03-02-advisory-detail.jpg)`
+![Vulnerability scan results identifying known vulnerabilities in container base packages](images/a03-01-scan-results-overview.jpg)`
+`![Advisory detail for libssl3t64 and libc6 findings](images/a03-02-advisory-detail.jpg)`
 
 ---
 
@@ -85,9 +88,9 @@ Screenshots below show the dependency vulnerability scan results, including the 
 
 **Application:** OWASP Juice Shop
 
-**Testing Environment:** Local authorized laboratory environment
+**Testing Environment:** Local authorized laboratory environment (Docker)
 
-**Tools:** Kali Linux, npm audit / dependency scanner, Burp Suite
+**Tools:** Kali Linux, Docker, container vulnerability scanner
 
 **Assessment Type:** Web Application Vulnerability Assessment
 
