@@ -2,90 +2,98 @@
 
 ## Finding
 
-**Vulnerability:** Weak Security-Question-Based Password Recovery
+**Vulnerability:** Insecure Design of Password Recovery Mechanism (Security-Question-Based Reset)
 
 **Status:** Confirmed
 
 **Severity:** High
 
-**Affected Functionality:** Password recovery
+**Affected Functionality:** Forgot Password / Account Recovery
+
+**Endpoint:** `POST /rest/user/reset-password`
 
 ---
 
 ## Description
 
-The password recovery functionality was found to rely on knowledge-based security questions as an authentication factor.
+Insecure Design refers to security weaknesses that originate from the architecture or design of an application's functionality, rather than from an implementation defect. Unlike a coding bug, an insecure design flaw can remain present even when the feature is implemented exactly as specified, because the underlying design choice itself is inadequate to resist common attack patterns.
 
-The recovery mechanism did not provide an additional out-of-band verification mechanism. During the assessment, the security-question mechanism was also considered in combination with information exposed by the application's configuration functionality.
+The application's password-recovery functionality relies solely on a knowledge-based security question to verify a user's identity before allowing a password reset. No secondary out-of-band verification step, such as an emailed reset token or link, is used to confirm that the party performing the reset is the legitimate account owner.
 
-This design can weaken the overall security of the account recovery process.
-
----
-
-## Testing Methodology
-
-1. The application's password recovery functionality was identified.
-2. The password recovery workflow was examined.
-3. The security-question mechanism used during account recovery was reviewed.
-4. The available verification factors were assessed.
-5. The relationship between the recovery mechanism and information exposed elsewhere in the application was considered.
+This finding is also connected to the **A02:2025 Security Misconfiguration** finding, where security-question answers for certain accounts were found to be exposed through the application configuration endpoint. The combination of a low-entropy, single-factor recovery design and separately disclosed answer data increases the practical risk of account takeover.
 
 ---
 
-## Observed Result
+## Testing Procedure
 
-The password recovery process relied on a security question as a knowledge-based verification mechanism.
+1. The Forgot Password functionality was accessed at `http://127.0.0.1:3000/#/forgot-password`.
+2. The email address `admin@juice-sh.op` was submitted to retrieve the associated security question.
+3. An incorrect answer was submitted to the displayed security question.
 
-No additional out-of-band verification mechanism was identified during the assessment.
+   ![Browser view showing "Wrong answer to security question" error on the Forgot Password page](images/a06-01-wrong-answer-error.jpeg)
+   *Figure: Browser view showing "Wrong answer to security question" error on the Forgot Password page.*
 
-The assessment also identified exposure of security-question metadata and answer values through an application endpoint, increasing the risk associated with the recovery design.
+4. The request and response were captured and inspected using Burp Suite.
+5. The incorrect-answer submission was repeated multiple times in succession to observe the application's rate-limiting behavior, and the response headers were examined for any rate-limit indicators.
+
+   ![Burp Suite Repeater/HTTP history view showing the reset-password request and 401 response with X-RateLimit headers](images/a06-02-burp-ratelimit-headers.jpeg)
+   *Figure: Burp Suite Repeater/HTTP history view showing the `POST /rest/user/reset-password` request body (`"email":"admin@juice-sh.op"`, `"answer":"nqwndqwd"`...) and the 401 Unauthorized response with the `X-RateLimit-*` headers visible.*
+
+6. A second test account was used to complete the flow with the correct security-question answer, followed by submission of a new password.
+
+   ![Browser view showing "Your password was successfully changed" on the second test account](images/a06-03-password-reset-success.jpeg)
+   *Figure: Browser view showing "Your password was successfully changed" on the second test account.*
+
+7. The application's response to the successful reset was recorded, and checked for any indication of an account-owner notification.
+
+---
+
+## Observation
+
+Submitting an incorrect answer to the security question for the `admin@juice-sh.op` account returned an **HTTP 401 Unauthorized** response with the message *"Wrong answer to security question."*
+
+The response headers indicated that the endpoint enforces rate-limiting:
+X-RateLimit-Limit: 100
+X-RateLimit-Remaining: 94
+X-RateLimit-Reset: 1788866674
+
+
+This confirms that repeated requests from the same source are tracked and would eventually be blocked once the limit is exhausted within the reset window. However, this control appears to be applied at the **request/IP level** rather than being scoped to the specific account under attack. An attacker distributing reset attempts across multiple source IP addresses could therefore still perform a sustained brute-force attempt against a single victim account's security-question answer, without triggering the limit for that account specifically.
+
+When the correct answer was supplied for the second test account, the application returned **HTTP 200 OK** with confirmation that the password was successfully changed. No email or other out-of-band notification to the account owner was observed as part of this flow.
 
 ---
 
 ## Security Impact
 
-A weak account recovery design may allow an attacker to compromise an account if the required security-question information becomes known.
+While the endpoint applies IP-based rate-limiting, this does not fully mitigate the underlying design weakness: security-question answers remain a single, static, low-entropy factor for account recovery, and the rate-limiting control is not scoped to the targeted account. An attacker using multiple source IP addresses could still attempt a sustained brute-force of the security-question answer for a specific victim account.
 
-Potential impacts include:
+Additionally, because no notification is sent to the account owner upon a password-reset attempt or success, a compromised account may go unnoticed by its legitimate owner, delaying detection and response.
 
-- Unauthorized account recovery
-- Account compromise
-- Loss of confidentiality
-- Unauthorized access to user functionality
-- Increased impact when combined with information-disclosure vulnerabilities
+This finding also compounds the impact of the **A02:2025** finding: where a security-question answer has already been disclosed through the configuration endpoint, this design flaw becomes directly and immediately exploitable rather than theoretical.
 
 ---
 
 ## Root Cause
 
-The password recovery mechanism relied on a knowledge-based security question without sufficient additional verification.
-
-The design did not provide adequate assurance that the person requesting account recovery was the legitimate account owner.
+The probable root cause is reliance on a single, low-entropy, static, knowledge-based factor for account recovery. While basic IP-based rate-limiting is present at the endpoint, it does not fully compensate for the underlying design choice, since it is not account-scoped and provides no protection against distributed brute-force attempts. This remains a design-level weakness rather than an implementation defect, as the feature functions exactly as it was designed to.
 
 ---
 
 ## Remediation
 
-Recommended controls include:
-
-1. Use stronger account recovery mechanisms.
-2. Implement multi-factor or out-of-band verification where appropriate.
-3. Avoid relying solely on knowledge-based security questions.
-4. Do not expose security-question answers through application endpoints.
-5. Apply appropriate authentication and authorization controls to recovery functionality.
-6. Review account recovery workflows against realistic attack scenarios.
+1. Replace or supplement security-question-based recovery with a token-based reset mechanism (a time-limited, single-use link sent to the registered email address).
+2. If security questions are retained, require high-entropy, user-defined answers rather than predictable or guessable ones.
+3. Apply rate-limiting and lockout controls at the **account level**, not solely per-IP, so that brute-force attempts against a specific target cannot be distributed across multiple source addresses to bypass the limit.
+4. Send a notification to the account owner's registered email whenever a password-reset attempt or successful reset occurs.
+5. Introduce threat modeling during the design phase of authentication-adjacent features to identify this class of weakness prior to implementation.
+6. Consider requiring step-up verification (e.g., MFA) for password changes on sensitive or privileged accounts.
 
 ---
 
 ## Evidence
 
-Evidence was collected during testing of the password recovery functionality.
-
-Screenshots should be sanitized before publication.
-
-Sensitive information, including security-question answers, authentication tokens, session identifiers, credentials, and personal information, must be removed or masked.
-
-**Evidence status:** To be added after sanitization.
+Screenshots above show: (1) the incorrect security-question-answer error, (2) the Burp Suite request/response revealing IP-scoped rate-limiting via `X-RateLimit-*` headers, and (3) the successful password reset on the second test account. Sensitive values have been redacted prior to publishing.
 
 ---
 
