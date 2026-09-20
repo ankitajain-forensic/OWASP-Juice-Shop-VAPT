@@ -71,7 +71,7 @@ Recommended controls include:
 Screenshots below show the request to the configuration endpoint and the response containing the exposed security-question data. Sensitive values have been redacted prior to publishing.
 
 *[Add screenshots here, e.g.:]*
-`![Request to the application configuration endpoint](images/a02-01-request-config-endpoint.jpg)`
+`![Request to the application configuration endpoint](images/a02-01-request-config-endpoint.jpg.jpg)`
 `![Response exposing security-question data](images/a02-02-response-exposed-config-data.jpg)`
 
 ---
