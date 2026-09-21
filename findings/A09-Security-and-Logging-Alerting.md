@@ -8,167 +8,79 @@
 
 **Severity:** Medium
 
-**Affected Functionality:** Application-wide — Authentication and Basket API
+**Affected Functionality:** Application-wide (Authentication, Basket API)
 
 ---
 
 ## Description
 
-The application did not provide observable indications that anomalous or malicious activity was being detected, flagged, or triggering a defensive response.
+Security Logging and Alerting Failures occur when an application does not generate sufficient logs for security-relevant events, or when generated logs are not monitored and acted upon through an effective alerting mechanism. Without adequate logging and alerting, malicious activity can go undetected, delaying incident response and allowing an attacker to operate without triggering any defensive reaction from the application or its operators.
 
-Because this assessment was conducted as a black-box assessment, server-side log files could not be directly inspected. Therefore, this finding is based on observable application behaviour during controlled testing.
+As a black-box assessment, this project could not directly inspect server-side log files. Instead, this finding is based on **observable application behavior** during testing — specifically, whether any of the clearly anomalous or malicious activity conducted during this assessment produced any client-visible indication of detection, flagging, or defensive response.
 
-Three activities were examined:
-
-- SQL Injection authentication bypass
-- Repeated brute-force login attempts
-- Malformed basket-ID input
+Three pieces of evidence support this finding: the SQL injection authentication bypass (A05:2025), the unthrottled brute-force attempt against the login endpoint (A07:2025), and the application's handling of a malformed basket-ID request during this testing phase.
 
 ---
 
-## Testing Methodology
+## Testing Procedure
 
-### 1. SQL Injection
+1. The SQL injection authentication bypass documented under **A05:2025** was reviewed for any indication of detection or defensive response (e.g., forced session termination, account flagging, alert banner).
+2. The brute-force login attempt documented under **A07:2025** (110 requests via Burp Intruder) was reviewed for any change in application behavior over the course of the attack that would indicate detection.
+3. A malformed request was submitted directly to the basket API using a non-numeric basket identifier: `GET /rest/basket/abc`.
+4. The response was examined for any indication that the invalid/anomalous input was flagged, logged, or handled differently from a normal request.
 
-The SQL Injection authentication bypass documented under A05 was reviewed for any observable indication of detection or defensive response, such as:
+   ![Legitimate basket request shown for comparison](images/a09-01-legitimate-basket-request.jpg)
 
-- Session termination
-- Account flagging
-- Security warning
-- Alert or other defensive response
+   *Figure: Legitimate basket request, shown for comparison against the malformed request below.*
 
-### 2. Brute-Force Login Attempts
+   ![Burp Suite Repeater view showing GET /rest/basket/abc returning HTTP 200 OK with a success status](images/a09-02-malformed-basket-id-response.jpg)
 
-The login endpoint was tested using **110 requests through Burp Intruder**.
-
-The application responses were examined for changes in behaviour that could indicate detection or defensive action.
-
-### 3. Malformed Basket Identifier
-
-A malformed request was submitted to the basket API:
-
-    GET /rest/basket/abc
-
-The response was examined to determine whether the invalid input was flagged, rejected, or handled differently from a normal request.
+   *Figure: Burp Suite Repeater view showing the request `GET /rest/basket/abc` and the response `HTTP 200 OK` with body `{"status":"success","data":null}`.*
 
 ---
 
-## Observed Result
+## Observation
 
-### SQL Injection
+**SQL injection (A05:2025):** The authentication bypass using `' OR 1=1--` succeeded and returned a valid authentication token with no observable client-side indication that the request had been flagged, blocked, or treated as anomalous by any security-monitoring mechanism.
 
-The SQL Injection authentication bypass using:
+**Brute-force login attempts (A07:2025):** Across 110 submitted login attempts against a single account, every response remained a uniform 401 Unauthorized with identical length and structure throughout the attack. No response at any point in the sequence indicated that the volume or pattern of attempts had been detected or was being treated differently from isolated failed logins.
 
-    ' OR 1=1--
+**Malformed basket-ID request:** Submitting a non-numeric basket identifier (`abc`) resulted in an HTTP 200 OK response with `{"status":"success","data":null}`, rather than a 400 Bad Request or any error response. The malformed input was processed as though it were a normal, successful request rather than being surfaced as invalid or anomalous input worth flagging.
 
-successfully returned a valid authentication token.
-
-No observable client-side indication showed that the request had been detected, blocked, or treated as anomalous.
-
-### Brute-Force Attempts
-
-Across **110 submitted login attempts**, every response remained:
-
-    HTTP 401 Unauthorized
-
-The response behaviour remained consistent throughout the attack.
-
-No observable CAPTCHA challenge, rate-limit response, account-lockout message, or other defensive response was triggered.
-
-### Malformed Basket Request
-
-The request:
-
-    GET /rest/basket/abc
-
-returned:
-
-    HTTP 200 OK
-
-with the response:
-
-    {"status":"success","data":null}
-
-The malformed input therefore produced a success-like response rather than an explicit error or observable indication that the request was anomalous.
-
-### Overall Observation
-
-Across all three test cases, there was no client-observable evidence such as:
-
-- Security warning
-- Changed response pattern
-- CAPTCHA challenge
-- Session termination
-- Account flagging
-- Security notice
-
-indicating that the activity had been detected or had triggered a meaningful defensive response.
+Across all three cases, no client-observable evidence — such as an error banner, session termination, CAPTCHA challenge, changed response pattern, or security notice — indicated that any of this activity was logged in a way that would trigger a meaningful alert.
 
 ---
 
 ## Security Impact
 
-Insufficient logging and alerting can allow security-relevant activity to occur without timely detection.
+Without effective logging and alerting, security-relevant events such as authentication bypass attempts, brute-force login activity, and malformed/anomalous input can occur without detection. This significantly increases the time an attacker can operate undetected within the application (dwell time), delays incident response, and removes the opportunity for defenders to intervene before a security event escalates into a more serious compromise.
 
-Potential impacts include:
-
-- Increased attacker dwell time
-- Delayed incident response
-- Reduced visibility into attack activity
-- Difficulty identifying attack patterns
-- Reduced forensic investigation capability
-- Increased opportunity for an attacker to continue malicious activity undetected
+The lack of any observable difference in application behavior during genuinely malicious activity (SQL injection, brute-force) versus normal use suggests that, at minimum, client-facing indicators of detection are absent — and raises concern that server-side logging and alerting for these event types may be similarly inadequate or unmonitored.
 
 ---
 
 ## Root Cause
 
-The probable root cause is the absence of, or inadequate configuration of, security-event logging and alerting mechanisms for:
+The probable root cause is the absence of, or inadequate configuration of, security event logging and alerting mechanisms for authentication failures, injection attempts, and malformed/anomalous requests.
 
-- Authentication failures
-- Injection attempts
-- Malformed or anomalous requests
-
-The application did not appear to differentiate suspicious activity from normal application behaviour through observable defensive responses.
+The application does not appear to differentiate its handling or response for suspicious activity compared to normal application use.
 
 ---
 
 ## Remediation
 
-Recommended controls include:
-
-1. Implement logging for security-relevant events, including failed login attempts, unusual authentication patterns, injection attempts, and malformed requests.
-2. Configure alerting thresholds for repeated failed logins and suspected injection activity.
-3. Integrate application logs with a centralized logging or SIEM solution.
-4. Log malformed or unexpected input and reject it with an appropriate error response where applicable.
-5. Periodically test logging and alerting mechanisms using controlled attack scenarios.
-6. Ensure logs contain sufficient contextual information such as timestamp, source, endpoint, user identifier, and result.
-7. Avoid logging sensitive information such as passwords, authentication tokens, or other confidential data.
+1. Implement logging for security-relevant events, including failed login attempts, successful logins from unusual patterns, injection-pattern input, and malformed requests.
+2. Configure alerting thresholds (e.g., N failed logins within a time window, injection-pattern detection) that notify security personnel in near-real-time.
+3. Integrate application logs with a centralized logging/SIEM solution to enable correlation and anomaly detection across requests.
+4. Ensure that malformed or unexpected input (such as non-numeric identifiers where numeric values are expected) is logged and, where appropriate, rejected with an explicit error rather than silently processed as successful.
+5. Periodically test logging and alerting mechanisms (e.g., via simulated attack scenarios) to confirm they trigger as intended.
+6. Ensure logs capture sufficient context (timestamp, source IP, endpoint, user identifier, and result) to support incident investigation, while avoiding logging of sensitive data such as full passwords or tokens.
 
 ---
 
 ## Evidence
 
-Evidence was collected through observable application behaviour during controlled testing.
-
-Evidence includes:
-
-- SQL Injection authentication-bypass behaviour
-- 110 Burp Intruder login attempts
-- Malformed basket-ID request
-- HTTP response behaviour observed during testing
-
-Screenshots should be sanitized before public documentation.
-
-**Evidence status:** To be added after sanitization.
-
----
-
-## Assessment Limitation
-
-The assessment was performed as a black-box test and did not provide direct access to server-side log files.
-
-Therefore, the finding establishes the absence of **client-observable detection or defensive response** during testing. It does not independently prove that no server-side logs were generated.
+Screenshots above show: (1) a legitimate basket request for comparison, and (2) the malformed basket-ID request (`GET /rest/basket/abc`) returning an HTTP 200 OK success response rather than an error. Sensitive values have been redacted prior to publishing.
 
 ---
 
@@ -178,9 +90,9 @@ Therefore, the finding establishes the absence of **client-observable detection 
 
 **Testing Environment:** Local authorized laboratory environment
 
-**Tools:** Kali Linux, Burp Suite, Firefox/Burp Suite Browser
+**Tools:** Kali Linux, Burp Suite (Repeater, Intruder), Firefox/Burp Suite Browser
 
-**Assessment Type:** Black-box Web Application Vulnerability Assessment
+**Assessment Type:** Web Application Vulnerability Assessment
 
 ---
 
