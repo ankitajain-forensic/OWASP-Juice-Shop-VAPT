@@ -29,7 +29,7 @@ The **couponData** value was modified within Burp Suite Repeater and the request
 1. A product was added to the basket and the checkout flow was initiated within the OWASP Juice Shop application.
 2. Burp Suite was used to intercept the order-confirmation request submitted at the final checkout step.
 
-   ![Original coupon code captured in the checkout request](images/a08-01-original-coupon-code.jpeg)
+   ![Original coupon code captured in the checkout request](images/a08-01-original-coupon-code.jpg)
 
     *Figure: Original coupon code.*
 
@@ -37,14 +37,14 @@ The **couponData** value was modified within Burp Suite Repeater and the request
 5. The `couponData` field value within the request body was modified.
 6. The modified request was submitted to the application.
 
-   ![Burp Suite Repeater view showing the modified request and HTTP 200 OK order confirmation](images/a08-02-modified-request-order-confirmed.jpeg)
+   ![Burp Suite Repeater view showing the modified request and HTTP 200 OK order confirmation](images/a08-02-modified-request-order-confirmed.jpg)
 
    *Figure: Burp Suite Repeater view showing the modified request body (`"couponData":"899DAwMDAw"`, along with `orderDetails` containing `paymentId`, `addressId`, `deliveryMethodId`) and the corresponding HTTP 200 OK response containing `"orderConfirmation":"eeae-8171a1cb735a4f4f"`.*
 
 7. The server response was examined to determine whether the order was processed successfully despite the modified coupon data.
 8. An attempt was made to decode the `couponData` value using Burp Suite Decoder to determine its structure.
 
-   ![Attempt to decode the coupon code](images/a08-03-decode-attempt.jpeg)
+   ![Attempt to decode the coupon code](images/a08-03-decode-attempt.jpg)
 
    *Figure: Attempt to decode the coupon code.*
 
