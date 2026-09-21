@@ -2,7 +2,7 @@
 
 ## Finding
 
-**Vulnerability:** Improper Handling of Malformed Basket Identifier Resulting in Fail-Open Behaviour
+**Vulnerability:** Improper Handling of Invalid Input Resulting in Silent Failure (Fail-Open Behavior)
 
 **Status:** Confirmed
 
@@ -10,103 +10,75 @@
 
 **Affected Functionality:** Basket API
 
-**Endpoint:** GET /rest/basket/{id}
+**Endpoint:** `GET /rest/basket/{id}`
 
 ---
 
 ## Description
 
-The basket API expects a valid numeric basket identifier. During testing, a malformed non-numeric basket identifier was supplied.
+Mishandling of Exceptional Conditions refers to weaknesses arising from improper error handling, unhandled edge cases, and abnormal application states — including situations where an application "fails open" (defaults to a permissive or success-like state) rather than "failing closed" (safely rejecting the request) when it encounters unexpected input or an internal error condition.
 
-The application returned a successful HTTP response instead of rejecting the malformed input with an appropriate error response.
+During this assessment, the application's basket-retrieval endpoint was tested with a malformed, non-numeric identifier in place of the expected numeric basket ID. Rather than returning an error response indicating that the request was invalid (such as an HTTP 400 Bad Request), the application returned an HTTP 200 OK response with a body indicating success, despite no valid data being returned.
 
-This behaviour indicates inadequate handling of exceptional or unexpected input and may represent a fail-open error-handling condition.
-
----
-
-## Testing Methodology
-
-The basket API was tested using both valid and malformed basket identifiers.
-
-The following malformed request was submitted:
-
-    GET /rest/basket/abc
-
-The HTTP status code and response body were examined to determine how the application handled the unexpected input.
+This behavior indicates that the exceptional condition — an identifier of an unexpected type — was not explicitly detected and handled by the application logic. Instead, the underlying failure (most likely a failed database lookup or type-coercion error) appears to have been absorbed and masked, with a generic "success" response returned to the client regardless of the actual outcome.
 
 ---
 
-## Observed Result
+## Testing Procedure
 
-The malformed request:
+1. A request was submitted to the basket-retrieval endpoint using a non-numeric value in place of the expected numeric basket identifier: `GET /rest/basket/abc`.
+2. The request was sent using Burp Suite Repeater, with the authenticated session's authorization token included.
+3. The response status code, headers, and body were examined to determine how the application handled the invalid identifier.
+4. The observed behavior was compared against the expected behavior for invalid input (i.e., a client error response such as 400 Bad Request or 404 Not Found).
 
-    GET /rest/basket/abc
+   ![Burp Suite Repeater view showing GET /rest/basket/abc returning HTTP 200 OK with a success status instead of an error](images/a09-02-malformed-basket-id-response.jpeg)
+   *Figure: Burp Suite Repeater view showing the request `GET /rest/basket/abc` and the response `HTTP 200 OK` with body `{"status":"success","data":null}` — the same evidence referenced in A09:2025, viewed here from the exceptional-handling perspective.*
 
-returned:
+---
 
-    HTTP 200 OK
+## Observation
 
-with the response:
+Submitting a non-numeric basket identifier (`abc`) resulted in the following response:
+HTTP/1.1 200 OK
+Content-Type: application/json; charset=utf-8
 
-    {"status":"success","data":null}
+{
+"status": "success",
+"data": null
+}
 
-The application therefore returned a success-like response for an invalid basket identifier rather than rejecting the malformed input with an explicit error response.
+Rather than returning an explicit error indicating that the supplied identifier was invalid, the application returned a status of "success" with a null data payload. This response is indistinguishable, from the client's perspective, from a legitimate "resource not found but request well-formed" outcome — the response gives no indication that the underlying request was malformed or that an exceptional condition occurred during processing.
 
 ---
 
 ## Security Impact
 
-Improper exceptional-condition handling can:
+Fail-open behavior of this kind can mask underlying application errors, making it difficult to distinguish between legitimate empty results, invalid input, and genuine internal failures. This can complicate debugging and security monitoring, and may allow malformed or malicious input to pass through application logic without being flagged as unusual — reinforcing the logging and alerting gap identified under **A09:2025**.
 
-- Mask invalid input and application errors
-- Complicate monitoring and debugging
-- Make abnormal requests less distinguishable from normal requests
-- Potentially expose similar fail-open behaviour in other application functions
-
-During this assessment, no direct unauthorized access or major security impact was demonstrated from this specific condition.
+More broadly, an application that consistently defaults to a success-like state when encountering unexpected conditions increases the risk that other, more security-critical exceptional conditions (such as authorization checks, payment processing, or account-state transitions) could similarly fail open rather than fail closed, potentially bypassing intended security controls under abnormal conditions.
 
 ---
 
 ## Root Cause
 
-The probable root cause is inadequate input validation and exception handling at the API layer.
-
-The application does not appear to explicitly enforce the expected numeric format of the basket identifier before processing the request.
-
-The invalid lookup or exceptional condition is instead returned through a generic success-like response.
+The probable root cause is inadequate input validation and exception handling at the API layer. The endpoint does not appear to explicitly validate that the supplied basket identifier is of the expected type (numeric) before processing the request, and any resulting internal error or failed lookup is not surfaced to the client as a distinct error condition — instead defaulting to a generic success response.
 
 ---
 
 ## Remediation
 
-Recommended controls include:
-
-1. Implement explicit validation for basket identifiers and other API parameters.
-2. Reject invalid data types and formats before processing the request.
-3. Use fail-closed behaviour when unexpected input or processing errors occur.
-4. Return an appropriate client error response, such as HTTP 400 Bad Request, for malformed input.
-5. Log unexpected or malformed requests for security monitoring and troubleshooting.
-6. Perform negative testing to verify that exceptional conditions are handled securely.
+1. Implement explicit input validation for all path and query parameters, rejecting requests with invalid types or formats before further processing (e.g., return 400 Bad Request for a non-numeric basket ID).
+2. Ensure error-handling logic distinguishes between "resource not found," "invalid input," and "internal server error" conditions, returning appropriate and distinct HTTP status codes for each.
+3. Adopt a fail-closed design principle for exceptional conditions — default to rejecting or safely erroring out rather than returning a success-like response when an unexpected state is encountered.
+4. Ensure exceptional conditions are logged with sufficient detail to support the logging and alerting improvements recommended under A09:2025.
+5. Include negative-path testing (invalid types, boundary values, malformed input) as a standard part of the application's test suite to catch fail-open behavior before deployment.
+6. Perform regression testing after remediation to confirm that malformed requests are now met with explicit, appropriate error responses.
 
 ---
 
 ## Evidence
 
-Evidence was collected through controlled testing of the basket API.
-
-Evidence includes:
-
-- Malformed basket identifier request
-- HTTP 200 response
-- Success-like response body containing null data
-
----
-
-## Assessment Limitation
-
-The observed behaviour demonstrates improper handling of the tested malformed basket identifier.
-
-No direct unauthorized access or additional exploit was demonstrated from this condition during the assessment.
+The screenshot above shows the malformed basket-ID request returning an HTTP 200 OK "success" response instead of an explicit error — the same evidence used for A09:2025, examined here for its fail-open error-handling implications rather than its detection/alerting implications. Sensitive values have been redacted prior to publishing.
 
 ---
 
@@ -116,9 +88,9 @@ No direct unauthorized access or additional exploit was demonstrated from this c
 
 **Testing Environment:** Local authorized laboratory environment
 
-**Tools:** Kali Linux, Burp Suite, Firefox/Burp Suite Browser
+**Tools:** Kali Linux, Burp Suite (Repeater)
 
-**Assessment Type:** Black-box Web Application Vulnerability Assessment
+**Assessment Type:** Web Application Vulnerability Assessment
 
 ---
 
