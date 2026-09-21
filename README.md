@@ -56,32 +56,25 @@ The assessment included vulnerabilities and security weaknesses related to:
 
 ## Findings
 
-Detailed findings will be documented individually with:
+This assessment identified 10 confirmed vulnerabilities, one mapped to each OWASP Top 10:2025 category.
+Each finding below links to its full write-up, including testing methodology, evidence, and remediation guidance.
 
-- Vulnerability description
-- Affected functionality
-- Testing methodology
-- Evidence
-- Security impact
-- Severity
-- Remediation
-- References
+| # | OWASP Category | Finding | Severity | Status | Report |
+|---|---|---|---|---|---|
+| A01 | Broken Access Control | Insecure Direct Object Reference (IDOR) | High | Confirmed | [View](findings/A01-Broken-Access-Control.md) |
+| A02 | Security Misconfiguration | Exposure of application configuration and security-sensitive information | High | Confirmed | [View](findings/A02-Security-Misconfiguration.md) |
+| A03 | Software Supply Chain Failures | Known vulnerabilities in container base image dependencies (OpenSSL, glibc) | High | Confirmed | [View](findings/A03-Software-Supply-Chain-Failures.md) |
+| A04 | Cryptographic Failures | Authentication data transmitted over unencrypted HTTP | Medium | Confirmed | [View](findings/A04-Cryptographic-Failures.md) |
+| A05 | Injection | SQL Injection in user authentication | Critical | Confirmed | [View](findings/A05-Injection.md) |
+| A06 | Insecure Design | Insecure design of password recovery mechanism | High | Confirmed | [View](findings/A06-Insecure-Design.md) |
+| A07 | Authentication Failures | No brute-force protection and weak password policy | High | Confirmed | [View](findings/A07-Authentication-Failures.md) |
+| A08 | Software or Data Integrity Failures | Client-controlled coupon data accepted without integrity verification | Medium | Confirmed | [View](findings/A08-Software-or-Data-Integrity-Failures.md) |
+| A09 | Security Logging and Alerting Failures | No observable detection or alerting for malicious activity | Medium | Confirmed | [View](findings/A09-Security-Logging-and-Alerting-Failures.md) |
+| A10 | Mishandling of Exceptional Conditions | Fail-open behavior on malformed basket identifier | Low | Confirmed | [View](findings/A10-Mishandling-of-Exceptional-Conditions.md) |
 
-## Evidence
+## Evidence & Remediation
 
-Screenshots and supporting evidence will be added after reviewing them for sensitive information such as:
-
-- IP addresses
-- Usernames
-- Email addresses
-- Session tokens
-- Cookies
-- JWTs
-- Student or university identifiers
-
-## Remediation
-
-Each confirmed vulnerability will include practical remediation recommendations based on the nature of the security weakness.
+Evidence and remediation guidance for each finding are documented individually in the linked reports above. All screenshots have been reviewed and redacted to remove session tokens, cookies, credentials, and other sensitive values prior to publishing.
 
 ## Limitations
 
